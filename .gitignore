@@ -1,0 +1,14 @@
+node_modules/
+.env
+# real bills and call logs carry account numbers and personal details
+bills/*
+!bills/.gitkeep
+runs/*
+!runs/.gitkeep
+.DS_Store
+# Wajo OAuth tokens
+.wajo-auth.json
+.playwright-mcp/
+# demo video and personal submission notes
+demo/
+SUBMISSION.md

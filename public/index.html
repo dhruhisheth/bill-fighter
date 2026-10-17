@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bill Fighter</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='16' fill='%2316140f'/><rect x='9' y='10' width='5' height='8' rx='2.5' fill='%23f6f3ee'/><rect x='18' y='10' width='5' height='8' rx='2.5' fill='%23f6f3ee'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f3ee; --card: #ffffff; --ink: #16140f; --muted: #6f6a60; --line: #e6e0d5;
+  --money: #12804a; --money-soft: #e3f3ea; --warn: #b45309; --bad: #b42318; --accent: #16140f;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+main { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+header { display: flex; align-items: center; gap: 10px; margin-bottom: 48px; }
+.face { width: 34px; height: 34px; border-radius: 50%; background: var(--ink); position: relative; flex: none; }
+.face::before, .face::after { content: ""; position: absolute; top: 11px; width: 6px; height: 9px; border-radius: 3px; background: var(--bg); }
+.face::before { left: 9px; } .face::after { right: 9px; }
+.face.big { width: 72px; height: 72px; }
+.face.big::before, .face.big::after { top: 22px; width: 12px; height: 18px; border-radius: 6px; }
+.face.big::before { left: 19px; } .face.big::after { right: 19px; }
+.face.talking { animation: bob 1.2s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-4px) scale(1.03); } }
+.brand { font-weight: 700; letter-spacing: -0.01em; }
+.brand small { font-weight: 500; color: var(--muted); margin-left: 6px; }
+h1 { font: 400 clamp(40px, 7vw, 60px)/1.02 "Instrument Serif", serif; letter-spacing: -0.02em; margin: 0 0 14px; }
+h1 em { color: var(--money); }
+.lede { color: var(--muted); font-size: 18px; max-width: 520px; margin: 0 0 32px; }
+section[data-step] { display: none; }
+body[data-step="upload"] [data-step="upload"],
+body[data-step="reading"] [data-step="reading"],
+body[data-step="findings"] [data-step="findings"],
+body[data-step="calling"] [data-step="calling"],
+body[data-step="done"] [data-step="done"] { display: block; animation: rise .35s ease; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+.drop { display: block; border: 2px dashed #cfc6b6; border-radius: 20px; background: var(--card); padding: 44px 24px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.drop:hover, .drop.over { border-color: var(--ink); background: #fffdf9; }
+.drop strong { display: block; font-size: 18px; margin-bottom: 4px; }
+.drop span { color: var(--muted); font-size: 14px; }
+.samples { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 14px; }
+button { font: inherit; cursor: pointer; border: 0; }
+.chip-btn { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 14px; }
+.chip-btn:hover { border-color: var(--ink); }
+
+.reading { display: grid; grid-template-columns: 200px 1fr; gap: 28px; align-items: center; }
+.scan { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--card); aspect-ratio: 3/4; }
+.scan img { width: 100%; height: 100%; object-fit: contain; object-position: top center; display: block; }
+.scan::after { content: ""; position: absolute; left: 0; right: 0; height: 40px; background: linear-gradient(transparent, rgba(18,128,74,.25), transparent); animation: scan 1.8s ease-in-out infinite; }
+@keyframes scan { from { top: -40px; } to { top: 100%; } }
+.status-line { font: 400 30px/1.15 "Instrument Serif", serif; margin: 0 0 6px; }
+.muted { color: var(--muted); }
+
+.summary { font: 400 26px/1.25 "Instrument Serif", serif; margin: 0 0 24px; }
+.total { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; background: var(--ink); color: #fff; border-radius: 20px; padding: 22px 26px; margin-bottom: 18px; }
+.total .num { font: 400 54px/1 "Instrument Serif", serif; color: #7ee2a8; }
+.total .per { color: #cfcac0; }
+.issues { display: grid; gap: 10px; margin-bottom: 26px; }
+.issue { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; }
+.issue h3 { margin: 0; font-size: 16px; }
+.issue q { grid-column: 1 / -1; color: var(--muted); font-size: 13px; quotes: none; font-family: ui-monospace, Menlo, monospace; }
+.save { font-weight: 700; color: var(--money); white-space: nowrap; }
+.conf { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.conf.high { color: var(--money); } .conf.low { color: var(--warn); }
+
+.mode { display: grid; gap: 8px; margin-bottom: 16px; }
+.mode label { display: flex; gap: 10px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; cursor: pointer; font-size: 15px; }
+.mode label:has(input:checked) { border-color: var(--ink); }
+.mode input { margin-top: 4px; accent-color: var(--ink); }
+.go { width: 100%; background: var(--ink); color: #fff; border-radius: 16px; padding: 18px; font-size: 18px; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 12px; }
+.go:hover { background: #2d2a22; }
+.go .face { width: 26px; height: 26px; background: #fff; }
+.go .face::before, .go .face::after { background: var(--ink); top: 8px; width: 4px; height: 7px; }
+.go .face::before { left: 7px; } .go .face::after { right: 7px; }
+
+.call-head { display: flex; gap: 20px; align-items: center; margin-bottom: 26px; }
+.call-head h2 { font: 400 32px/1.1 "Instrument Serif", serif; margin: 0; }
+.timer { font-variant-numeric: tabular-nums; color: var(--muted); }
+.timeline { list-style: none; padding: 0; margin: 0; border-left: 2px solid var(--line); }
+.timeline li { position: relative; padding: 0 0 16px 20px; }
+.timeline li::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--line); }
+.timeline li:last-child::before { background: var(--money); box-shadow: 0 0 0 4px var(--money-soft); }
+.timeline li span { color: var(--muted); font-size: 13px; margin-left: 6px; }
+.timeline li q { display: block; color: var(--muted); font-size: 14px; font-style: italic; }
+.transcript { margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.transcript[hidden] { display: none; }
+.t-head { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.t-head::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #e5484d; animation: blink 1.2s infinite; }
+.transcript.ended .t-head::before { animation: none; background: var(--line); }
+@keyframes blink { 50% { opacity: .25; } }
+.bubble { max-width: 85%; padding: 9px 13px; border-radius: 16px; font-size: 15px; animation: rise .25s ease; }
+.bubble b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; opacity: .6; margin-bottom: 2px; }
+.bubble.fo { align-self: flex-start; background: var(--ink); color: #fff; border-bottom-left-radius: 4px; }
+.bubble.rep { align-self: flex-end; background: #ece6da; border-bottom-right-radius: 4px; }
+.ask { background: var(--card); border: 1px solid var(--ink); border-radius: 16px; padding: 16px; margin-top: 18px; }
+.ask p { margin: 0 0 10px; }
+.ask form { display: flex; gap: 8px; }
+.ask input { flex: 1; font: inherit; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.ask button { background: var(--ink); color: #fff; border-radius: 10px; padding: 10px 16px; }
+.error { color: var(--bad); margin-top: 18px; }
+
+.win { text-align: center; padding: 20px 0 10px; }
+.win .label { font-size: 18px; color: var(--muted); }
+.win .num { font: 400 clamp(84px, 16vw, 132px)/1 "Instrument Serif", serif; color: var(--money); letter-spacing: -0.03em; }
+.win .year { font-size: 18px; margin-top: 6px; }
+.results { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; margin: 28px 0 18px; }
+.results ul { list-style: none; margin: 0; padding: 0; }
+.results li { padding: 6px 0; }
+.results li.w::before { content: "✓  "; color: var(--money); font-weight: 700; }
+.results li.m::before { content: "✗  "; color: var(--bad); font-weight: 700; }
+.again { background: transparent; border: 1px solid var(--ink); border-radius: 999px; padding: 10px 18px; }
+details { margin-top: 14px; color: var(--muted); font-size: 14px; }
+details pre { white-space: pre-wrap; font: 13px/1.5 ui-monospace, Menlo, monospace; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+@media (max-width: 560px) {
+  main { padding-top: 24px; }
+  .reading { grid-template-columns: 1fr; }
+  .scan { max-width: 220px; }
+  .total .num { font-size: 44px; }
+}
+</style>
+</head>
+<body data-step="upload">
+<main>
+  <header><div class="face"></div><div class="brand">Bill Fighter <small>with Fo</small></div></header>
+
+  <section data-step="upload">
+    <h1>Your bill has money in it.<br><em>Fo will go get it.</em></h1>
+    <p class="lede">Snap a bill. Claude reads every line and finds what you can push back on. Then Fo calls the company and negotiates for you.</p>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept="image/*,.heic,.pdf" hidden>
+      <strong>Drop a bill here</strong>
+      <span>Photo, screenshot or PDF</span>
+    </label>
+    <div class="samples">Or try one:
+      <button class="chip-btn" data-sample="internet-bill.png">Internet bill</button>
+      <button class="chip-btn" data-sample="gym-bill.png">Gym membership</button>
+    </div>
+  </section>
+
+  <section data-step="reading">
+    <div class="reading">
+      <div class="scan"><img id="preview" alt=""></div>
+      <div>
+        <p class="status-line" id="readingLine">Reading every line</p>
+        <p class="muted">Claude is checking promo dates, fees and charges you can push back on.</p>
+      </div>
+    </div>
+  </section>
+
+  <section data-step="findings">
+    <p class="summary" id="summary"></p>
+    <div class="total"><span class="num" id="potMonthly"></span><span class="per" id="potRest"></span></div>
+    <div class="issues" id="issues"></div>
+    <div class="mode">
+      <label><input type="radio" name="mode" value="rehearsal" checked><span><b>Rehearsal.</b> Fo calls <span id="myPhone">your phone</span> and you play the rep.</span></label>
+      <label><input type="radio" name="mode" value="live"><span><b>Live.</b> Fo calls <span id="theirPhone">the company</span>.</span></label>
+    </div>
+    <button class="go" id="go"><span class="face"></span>Send Fo to make the call</button>
+  </section>
+
+  <section data-step="calling">
+    <div class="call-head">
+      <div class="face big talking"></div>
+      <div><h2 id="callTitle">Fo is on it</h2><div class="timer" id="timer">0:00</div></div>
+    </div>
+    <ul class="timeline" id="timeline"></ul>
+    <div class="transcript" id="transcript" hidden><div class="t-head">Live call</div></div>
+    <div class="ask" id="ask" hidden>
+      <p id="askText"></p>
+      <form id="askForm"><input id="askInput" placeholder="Your answer" autocomplete="off"><button>Send</button></form>
+    </div>
+    <p class="error" id="callError" hidden></p>
+  </section>
+
+  <section data-step="done">
+    <div class="win">
+      <div class="label" id="winLabel">Fo saved you</div>
+      <div class="num" id="winNum">$0</div>
+      <div class="year" id="winYear"></div>
+    </div>
+    <div class="results"><p id="outSummary" style="margin-top:0"></p><ul id="outList"></ul></div>
+    <button class="again" id="again">Fight another bill</button>
+    <details id="doneTranscript" hidden><summary>Call transcript</summary><div class="transcript" id="doneTranscriptBody"></div></details>
+    <details><summary>Fo's full report</summary><pre id="foReply"></pre></details>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const usd = (n, cents = true) => "$" + (cents ? n.toFixed(2) : Math.round(n).toLocaleString());
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const step = (name) => (document.body.dataset.step = name);
+let analysis = null, timerId = null, readingId = null, isSample = false, sampleName = null;
+
+// ?replay=latest (or a saved run name) plays back a real recorded run without
+// placing a new call. Handy for demo recordings.
+const replayName = new URLSearchParams(location.search).get("replay");
+let replayRun = null;
+if (replayName) {
+  fetch("/api/runs/" + encodeURIComponent(replayName)).then((r) => r.json()).then((run) => {
+    if (run.error) return alert(run.error);
+    replayRun = run;
+    document.querySelector(".brand small").textContent = "with Fo · replay of a real call";
+  });
+}
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function api(path, body) {
+  const res = await fetch(path, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: body && JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Something went wrong");
+  return data;
+}
+
+api("/api/config").then((c) => { $("myPhone").textContent = "your phone " + prettyPhone(c.customerPhone); }).catch(() => {});
+
+const READING = ["Reading every line", "Checking promo dates", "Looking for fees you can drop", "Comparing charges", "Writing Fo's call script"];
+function startReading(src) {
+  $("preview").src = src || "";
+  step("reading");
+  let i = 0;
+  $("readingLine").textContent = READING[0];
+  readingId = setInterval(() => { $("readingLine").textContent = READING[++i % READING.length]; }, 4000);
+}
+
+async function analyze(body, previewSrc) {
+  isSample = Boolean(body.sample);
+  sampleName = body.sample || null;
+  startReading(previewSrc);
+  try {
+    if (replayRun) {
+      await wait(9000);
+      analysis = replayRun.analysis;
+    } else {
+      analysis = await api("/api/analyze", body);
+    }
+    showFindings(analysis);
+  } catch (e) {
+    alert(e.message);
+    step("upload");
+  } finally {
+    clearInterval(readingId);
+  }
+}
+
+function showFindings(a) {
+  const monthly = a.issues.reduce((s, i) => s + i.monthlySavings, 0);
+  const once = a.issues.reduce((s, i) => s + i.oneTimeSavings, 0);
+  $("summary").textContent = a.summary;
+  $("potMonthly").textContent = "Up to " + usd(monthly) + "/mo";
+  $("potRest").textContent = (once ? "+ " + usd(once) + " back · " : "") + usd(monthly * 12, false) + " a year";
+  $("issues").innerHTML = a.issues.map((i) => {
+    const save = [i.monthlySavings ? usd(i.monthlySavings) + "/mo" : "", i.oneTimeSavings ? usd(i.oneTimeSavings) + " back" : ""].filter(Boolean).join(" + ");
+    return `<div class="issue"><h3>${esc(i.title)}</h3><span class="save">${esc(save || "—")}</span>
+      <q>${esc(i.evidence)}</q><span class="conf ${i.confidence}">${esc(i.confidence)} confidence</span></div>`;
+  }).join("");
+  // Sample bills carry fictional numbers, so only real uploads can go live.
+  $("theirPhone").textContent = isSample ? `${a.provider} (off for sample bills)`
+    : a.providerPhone ? `${a.provider} at ${a.providerPhone}` : `${a.provider} (no number on the bill)`;
+  document.querySelector('input[value="live"]').disabled = isSample || !a.providerPhone;
+  document.querySelector('input[value="rehearsal"]').checked = true;
+  step("findings");
+}
+
+$("file").addEventListener("change", (e) => e.target.files[0] && readFile(e.target.files[0]));
+const drop = $("drop");
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); e.dataTransfer.files[0] && readFile(e.dataTransfer.files[0]); });
+function readFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => analyze({ name: file.name, data: reader.result.split(",")[1] }, file.type.startsWith("image/") ? reader.result : "");
+  reader.readAsDataURL(file);
+}
+document.querySelectorAll("[data-sample]").forEach((b) =>
+  b.addEventListener("click", () => analyze({ sample: b.dataset.sample }, "/samples/" + b.dataset.sample)));
+
+$("go").addEventListener("click", async () => {
+  const live = document.querySelector('input[name="mode"]:checked').value === "live";
+  if (live && !confirm(`Fo will really call ${analysis.provider}. Go?`)) return;
+  $("timeline").innerHTML = "";
+  $("transcript").innerHTML = '<div class="t-head">Live call</div>';
+  $("transcript").hidden = true;
+  $("transcript").classList.remove("ended");
+  $("ask").hidden = true;
+  $("callError").hidden = true;
+  step("calling");
+  const started = Date.now();
+  timerId = setInterval(() => {
+    const s = Math.floor((Date.now() - started) / 1000);
+    $("timer").textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  }, 1000);
+  try {
+    if (replayRun) {
+      const { customerPhone } = await api("/api/config");
+      $("callTitle").textContent = "Fo is calling " + prettyPhone(customerPhone);
+      return replay(replayRun.events);
+    }
+    const { id, target } = await api("/api/fight", { analysis, live, sample: sampleName });
+    $("callTitle").textContent = "Fo is calling " + (live ? analysis.provider : prettyPhone(target));
+    listen(id);
+  } catch (e) {
+    showError(e.message);
+  }
+});
+
+// Fo's progress reads like: Working for 40s: calling X (Short label), 2 steps so far. Fo's last note: "..."
+function addLine(raw) {
+  const label = (raw.match(/\(([^)]+)\)/) || [])[1] || raw;
+  const note = (raw.match(/Fo's last note: "([\s\S]*?)"?$/) || [])[1];
+  const items = $("timeline").children;
+  if (items.length && items[items.length - 1].dataset.text === label) return;
+  const li = document.createElement("li");
+  li.dataset.text = label;
+  li.innerHTML = esc(label) + `<span>${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}</span>` + (note ? `<q>${esc(note)}</q>` : "");
+  $("timeline").appendChild(li);
+}
+
+// Fo's speech arrives in fragments; keep one bubble per speaker turn.
+function addBubble(who, text) {
+  const box = $("transcript");
+  box.hidden = false;
+  const last = box.lastElementChild;
+  if (last && last.classList.contains(who)) {
+    last.querySelector("span").textContent += " " + text;
+  } else {
+    const div = document.createElement("div");
+    div.className = "bubble " + who;
+    div.innerHTML = `<b>${who === "fo" ? "Fo" : "Rep"}</b><span></span>`;
+    div.querySelector("span").textContent = text;
+    box.appendChild(div);
+  }
+  box.lastElementChild.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+// Only the last 4 digits ever show on screen, so demos and screenshots don't leak the number.
+const prettyPhone = (p) => { const d = String(p).replace(/\D/g, ""); return d.length >= 4 ? `(•••) •••-${d.slice(-4)}` : p; };
+
+// Plays saved events with real gaps squeezed down so a 6 minute call fits in about a minute.
+async function replay(events) {
+  for (let i = 0; i < events.length; i++) {
+    handleEvent(events[i], null);
+    const next = events[i + 1];
+    if (!next) break;
+    const gap = (next.at ?? 0) - (events[i].at ?? 0);
+    await wait(next.type === "line" ? 1100 : Math.min(Math.max(gap, 600), 2500));
+  }
+}
+
+function listen(id) {
+  const source = new EventSource(`/api/jobs/${id}/events`);
+  source.onmessage = (msg) => handleEvent(JSON.parse(msg.data), source, id);
+}
+
+function handleEvent(e, source, id) {
+  {
+    if (e.type === "progress") addLine(e.text);
+    if (e.type === "line") addBubble(e.who, e.text);
+    if (e.type === "question") {
+      $("askText").textContent = "Fo asks: " + e.text;
+      $("ask").hidden = false;
+      $("askInput").focus();
+      $("askForm").onsubmit = async (ev) => {
+        ev.preventDefault();
+        const text = $("askInput").value.trim();
+        if (!text) return;
+        $("ask").hidden = true;
+        $("askInput").value = "";
+        addLine("You: " + text);
+        await api(`/api/jobs/${id}/reply`, { text }).catch((err) => showError(err.message));
+      };
+    }
+    if (e.type === "error") { showError(e.text); source?.close(); }
+    if (e.type === "outcome") { source?.close(); showOutcome(e.outcome); }
+  }
+}
+
+function showError(text) {
+  clearInterval(timerId);
+  document.querySelector(".face.big").classList.remove("talking");
+  $("callError").textContent = text;
+  $("callError").hidden = false;
+}
+
+function countUp(el, to, fmt) {
+  const start = performance.now(), dur = 1400;
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / dur), eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = fmt(to * eased);
+    if (t < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function showOutcome(o) {
+  clearInterval(timerId);
+  $("transcript").classList.add("ended");
+  const saved = o.monthlySaved > 0 || o.oneTimeSaved > 0;
+  $("winLabel").textContent = saved ? "Fo saved you" : "Fo made the call";
+  if (o.monthlySaved > 0) {
+    countUp($("winNum"), o.monthlySaved, (n) => usd(n) + "/mo");
+    $("winYear").textContent = usd(o.monthlySaved * 12, false) + " a year" + (o.oneTimeSaved ? ` + ${usd(o.oneTimeSaved)} back now` : "");
+  } else if (o.oneTimeSaved > 0) {
+    countUp($("winNum"), o.oneTimeSaved, (n) => usd(n));
+    $("winYear").textContent = "back on this bill";
+  } else {
+    $("winNum").textContent = "No luck";
+    $("winYear").textContent = "this time. Here's what they said.";
+  }
+  $("outSummary").textContent = o.summary + (o.reference ? ` Reference: ${o.reference}.` : "");
+  $("outList").innerHTML = o.wins.map((w) => `<li class="w">${esc(w)}</li>`).join("") + o.misses.map((m) => `<li class="m">${esc(m)}</li>`).join("");
+  $("foReply").textContent = o.foReply || "";
+  const lines = $("transcript").querySelectorAll(".bubble");
+  $("doneTranscript").hidden = !lines.length;
+  $("doneTranscriptBody").replaceChildren(...[...lines].map((b) => b.cloneNode(true)));
+  $("doneTranscript").querySelector("summary").textContent = `Call transcript (${lines.length} turns)`;
+  step("done");
+}
+
+$("again").addEventListener("click", () => { analysis = null; $("file").value = ""; step("upload"); });
+</script>
+</body>
+</html>
