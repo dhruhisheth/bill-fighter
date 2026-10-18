@@ -60,7 +60,7 @@ Savings must be realistic, not best case. Retention discounts are usually 10 to 
 
 Never invent a phone number, account number or name. Use null when it is not printed on the bill.
 
-The call script is for an AI assistant calling on the customer's behalf. Keep it polite, firm and short. It must never agree to a new contract, an upgrade, a price that is higher than today, or share payment card details.`;
+The call script is for an AI assistant calling on the customer's behalf. Keep it polite, firm and short. It must never agree to a new contract, an upgrade, a price that is higher than today, or share payment card details. Don't set a minimum discount to hold out for: any discount without a contract is worth taking.`;
 
 type Media =
   | { kind: "image"; mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif"; data: string }

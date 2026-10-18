@@ -19,7 +19,7 @@ export function buildBrief(analysis: BillAnalysis, customer: Customer, live: boo
   const target = callTarget(analysis, customer, live);
   const who = live
     ? `${analysis.provider} customer service`
-    : `${analysis.provider} customer service (this is a rehearsal: the number is a stand in, so treat whoever answers as the ${analysis.provider} rep)`;
+    : `${analysis.provider} customer service (this is a rehearsal: the number is my own phone standing in for theirs, so whoever answers is the ${analysis.provider} rep, not me. Don't greet them as me; open as you would with the real company)`;
 
   return `Please call ${target} now on my behalf. It's ${who}. I've reviewed this and approve the call, so you don't need to check with me before dialing.
 
@@ -44,7 +44,7 @@ ${list(analysis.script.leverage)}
 Never agree to:
 ${list(analysis.script.doNotAgreeTo)}
 
-Take any discount or credit that needs no new contract, even if it's smaller than what you asked for, then keep going with the remaining asks. Before hanging up, repeat back what they agreed to and ask for a reference number.
+Rule that overrides any targets above: there is no minimum. Accept every discount or credit that needs no new contract, however small (confirm "no contract?" if unsure), then keep going with the remaining asks. Before hanging up, repeat back what they agreed to and ask for a reference number.
 
 When to wrap up: ${analysis.script.walkAway}
 
