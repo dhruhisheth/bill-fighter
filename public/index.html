@@ -196,7 +196,7 @@ details pre { white-space: pre-wrap; font: 13px/1.5 ui-monospace, Menlo, monospa
 const $ = (id) => document.getElementById(id);
 const usd = (n, cents = true) => "$" + (cents ? n.toFixed(2) : Math.round(n).toLocaleString());
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const step = (name) => (document.body.dataset.step = name);
+const step = (name) => { document.body.dataset.step = name; window.scrollTo(0, 0); };
 let analysis = null, timerId = null, readingId = null, isSample = false, sampleName = null;
 
 // ?replay=latest (or a saved run name) plays back a real recorded run without

@@ -34,6 +34,7 @@ export const BillAnalysis = z.object({
   providerPhone: z.string().nullable().describe("Customer service number printed on the bill, null if absent"),
   accountNumber: z.string().nullable(),
   accountHolder: z.string().nullable(),
+  serviceAddress: z.string().nullable().describe("Service or billing address printed on the bill, null if absent"),
   billDate: z.string().nullable(),
   totalDue: z.number(),
   monthlyRecurring: z.number().nullable().describe("Recurring monthly charges before one time items"),

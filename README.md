@@ -14,6 +14,10 @@ Built solo for the Wajo GSD Hackathon (Oct 17 to 19, 2026) with Claude and the F
 
 On the sample internet bill, Claude found $43.99 a month plus a $10 refund. It also caught a late fee charged on a payment that arrived two days *before* the due date. In a rehearsal call (Fo dialed my phone and I played a stubborn Bayline rep), Fo got the late fee removed and the $15 router rental waived, turned down a retention offer that still left the price above the old rate, and reported honestly on what it didn't get to before the call dropped. **Result: $15 a month, $180 a year, plus $10 back.**
 
+In a second recorded rehearsal (Sun Oct 18), Fo got the late fee removed, the paper fee credited, paperless turned on and the $15 rental stopped once the gateway is returned, with reference BL4471: **$17 a month plus $12 back.** It still pushed back on a $20 no-contract discount instead of taking it, which is the main thing I'd fix next.
+
+Each run saves a trace of every Fo MCP and Claude call (`npm run trace` turns it into a readable timeline).
+
 ## How it works
 
 ```

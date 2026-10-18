@@ -27,6 +27,7 @@ Account details for verification (share only these):
 - Account holder: ${analysis.accountHolder ?? customer.name}
 - Account number: ${analysis.accountNumber ?? "not on the bill, ask them to look it up by name and phone"}
 - Phone on file: ${customer.phone}
+- Service address: ${analysis.serviceAddress ?? "not on the bill"}
 
 Goal: ${analysis.goal} my bill. ${analysis.summary}
 
