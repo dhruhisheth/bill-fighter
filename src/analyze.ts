@@ -6,6 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { claude, requestDefaults } from "./claude.js";
+import { traced } from "./trace.js";
 
 export const Issue = z.object({
   kind: z.enum([
@@ -104,7 +105,8 @@ export async function analyzeBill(file: string): Promise<BillAnalysis> {
 }
 
 export async function analyzeMedia(media: Media): Promise<BillAnalysis> {
-  const response = await claude.beta.messages.parse({
+  const input = { model: requestDefaults.model, effort: "high", content: [`[bill ${media.kind}]`, "Audit this bill and prepare the call."] };
+  const response = await traced("claude", "messages.parse (analyze bill)", input, () => claude.beta.messages.parse({
     ...requestDefaults,
     output_config: { effort: "high", format: zodOutputFormat(BillAnalysis) },
     max_tokens: 16000,
@@ -115,7 +117,12 @@ export async function analyzeMedia(media: Media): Promise<BillAnalysis> {
         content: [mediaBlock(media), { type: "text", text: "Audit this bill and prepare the call." }],
       },
     ],
-  });
+  }), (r) => ({
+    stop_reason: r.stop_reason,
+    usage: { input: r.usage.input_tokens, output: r.usage.output_tokens },
+    provider: r.parsed_output?.provider,
+    issues: r.parsed_output?.issues.map((i) => `${i.title} (${i.monthlySavings}/mo + ${i.oneTimeSavings} once, ${i.confidence})`),
+  }));
   if (response.stop_reason === "refusal") throw new Error("Claude declined to analyze this bill");
   if (!response.parsed_output) throw new Error(`Could not parse the analysis (stop: ${response.stop_reason})`);
   return response.parsed_output;

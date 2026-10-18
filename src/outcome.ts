@@ -2,6 +2,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import type { BillAnalysis } from "./analyze.js";
 import { claude, requestDefaults } from "./claude.js";
+import { traced } from "./trace.js";
 
 export const Outcome = z.object({
   status: z
@@ -24,7 +25,8 @@ export type Outcome = z.infer<typeof Outcome>;
 // Turns Fo's free text report into numbers we can put on screen. Only counts
 // savings Fo says the rep confirmed, never the estimates from the analysis.
 export async function readOutcome(analysis: BillAnalysis, foReply: string): Promise<Outcome> {
-  const response = await claude.beta.messages.parse({
+  const input = { model: requestDefaults.model, effort: "low", foReport: foReply };
+  const response = await traced("claude", "messages.parse (read Fo's report)", input, () => claude.beta.messages.parse({
     ...requestDefaults,
     output_config: { effort: "low", format: zodOutputFormat(Outcome) },
     max_tokens: 4000,
@@ -36,7 +38,7 @@ export async function readOutcome(analysis: BillAnalysis, foReply: string): Prom
         content: `What we asked for:\n${JSON.stringify(analysis.issues, null, 2)}\n\nThe assistant's report:\n${foReply}`,
       },
     ],
-  });
+  }), (r) => ({ stop_reason: r.stop_reason, usage: { input: r.usage.input_tokens, output: r.usage.output_tokens }, parsed: r.parsed_output }));
   if (!response.parsed_output) throw new Error(`Could not read Fo's result (stop: ${response.stop_reason})`);
   return response.parsed_output;
 }

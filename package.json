@@ -8,7 +8,8 @@
     "fight": "tsx src/run.ts",
     "login": "tsx src/login.ts",
     "check": "tsx src/check.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "trace": "tsx src/trace-report.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",

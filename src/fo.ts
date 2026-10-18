@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { auth } from "@modelcontextprotocol/sdk/client/auth.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { config } from "./config.js";
+import { traced } from "./trace.js";
 import { WajoAuth, waitForAuthCode } from "./wajo-auth.js";
 
 // Client for Fo's MCP profile (https://mcp.api.wajo.ai/fo).
@@ -33,7 +34,24 @@ export async function connectFo(): Promise<Client> {
   return client;
 }
 
-async function call<T>(client: Client, name: string, args: Record<string, unknown>): Promise<T> {
+// Big transcripts are summarized in the trace so it stays readable.
+function summarize(name: string, out: unknown): unknown {
+  const o = out as { turns?: FoLine[]; conversations?: FoConversation[] } | undefined;
+  if (name === "get_fo_conversation" && o?.turns) {
+    const last = o.turns.at(-1);
+    return { turns: o.turns.length, last: last && { role: last.role, at: last.at, text: last.text.slice(0, 200) } };
+  }
+  if (name === "list_fo_conversations" && o?.conversations) {
+    return { conversations: o.conversations.length, newest: o.conversations.slice(0, 2) };
+  }
+  return out;
+}
+
+function call<T>(client: Client, name: string, args: Record<string, unknown>): Promise<T> {
+  return traced("fo_mcp", name, args, () => rawCall<T>(client, name, args), (out) => summarize(name, out));
+}
+
+async function rawCall<T>(client: Client, name: string, args: Record<string, unknown>): Promise<T> {
   const result = await client.callTool({ name, arguments: args });
   if (result.isError) {
     const text = (result.content as { type: string; text?: string }[])

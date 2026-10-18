@@ -10,6 +10,7 @@ import { analyzeBill, BillAnalysis } from "./analyze.js";
 import { buildBrief, callTarget } from "./brief.js";
 import { askFo, connectFo, watchCall, type FoTurn } from "./fo.js";
 import { readOutcome } from "./outcome.js";
+import { maskInTrace, withTrace, type TraceEntry } from "./trace.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const PUBLIC = path.resolve("public");
@@ -25,6 +26,7 @@ type JobEvent = { at?: number } & (
 
 type Job = {
   analysis: BillAnalysis;
+  trace: TraceEntry[];
   sample?: string;
   events: JobEvent[];
   listeners: Set<http.ServerResponse>;
@@ -34,6 +36,10 @@ type Job = {
 };
 
 const jobs = new Map<string, Job>();
+const analyzeTraces = new Map<string, TraceEntry[]>();
+try {
+  maskInTrace(config.customerPhone());
+} catch {}
 let foClient: Promise<Client> | undefined;
 const fo = () => (foClient ??= connectFo());
 
@@ -48,11 +54,15 @@ function emit(job: Job, event: JobEvent) {
 // for demo recordings without placing another call.
 function saveRun(job: Job) {
   const file = `runs/${new Date(job.startedAt).toISOString().replace(/[:.]/g, "-")}-web.json`;
-  fs.writeFileSync(file, JSON.stringify({ sample: job.sample, analysis: job.analysis, events: job.events }, null, 2));
+  fs.writeFileSync(file, JSON.stringify({ sample: job.sample, analysis: job.analysis, events: job.events, trace: job.trace }, null, 2));
 }
 
 // Runs one Fo turn, then decides whether Fo is asking us something or is done.
-async function runTurn(job: Job, message: string, first: boolean) {
+function runTurn(job: Job, message: string, first: boolean) {
+  return withTrace(job.trace, () => runTurnTraced(job, message, first));
+}
+
+async function runTurnTraced(job: Job, message: string, first: boolean) {
   job.busy = true;
   try {
     const client = await fo();
@@ -147,17 +157,22 @@ const server = http.createServer(async (req, res) => {
       } else {
         return send(res, 400, { error: "Send a bill file or pick a sample" });
       }
-      return send(res, 200, await analyzeBill(file));
+      const trace: TraceEntry[] = [];
+      const analysis = await withTrace(trace, () => analyzeBill(file));
+      const traceId = randomUUID();
+      analyzeTraces.set(traceId, trace);
+      return send(res, 200, { ...analysis, traceId });
     }
 
     if (req.method === "POST" && url.pathname === "/api/fight") {
-      const body = await readJson<{ analysis: unknown; live?: boolean; sample?: string }>(req);
+      const body = await readJson<{ analysis: { traceId?: string }; live?: boolean; sample?: string }>(req);
       const analysis = BillAnalysis.parse(body.analysis);
       const customer = { name: config.customerName(), phone: config.customerPhone() };
       const live = body.live === true;
       const id = randomUUID();
       const job: Job = {
         analysis,
+        trace: [...(analyzeTraces.get(body.analysis.traceId ?? "") ?? [])],
         sample: body.sample ? path.basename(body.sample) : undefined,
         events: [],
         listeners: new Set(),
